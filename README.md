@@ -41,13 +41,13 @@ Hear it for yourself. Same source vocal, same reference voice (Gabriel, ~32 s cl
 
 | Clip | What it is |
 | :--- | :--- |
-| [Gabriel-Voice-Reference.wav](samples/Gabriel-Voice-Reference.wav) | The 32 second reference clip fed to ApexSVC. No training, just this. |
-| [ApexSVC-Gabriel-Vocals-Source.wav](samples/ApexSVC-Gabriel-Vocals-Source.wav) | The original source vocal (isolated stem) before any conversion. |
-| [ApexSVC-Gabriel-RVC-Vocals.wav](samples/ApexSVC-Gabriel-RVC-Vocals.wav) | RVCv2 conversion using a fully trained model on the same voice, for comparison. |
-| [ApexSVC-Gabriel-1-Vocals-Converted.wav](samples/ApexSVC-Gabriel-1-Vocals-Converted.wav) | ApexSVC zero shot conversion of the same source using only the reference above. |
-| [ApexSVC-Gabriel-1-Full.wav](samples/ApexSVC-Gabriel-1-Full.wav) | The ApexSVC vocal mixed back over the original instrumental. |
+| [Reference: Gabriel (32s)](samples/Gabriel-Voice-Reference.mp4) | The 32 second reference clip fed to ApexSVC. No training, just this. |
+| [Source vocal](samples/ApexSVC-Gabriel-Vocals-Source.mp4) | The original source vocal (isolated stem) before any conversion. |
+| [RVCv2 (trained model)](samples/ApexSVC-Gabriel-RVC-Vocals.mp4) | RVCv2 conversion using a fully trained model on the same voice, for comparison. |
+| [ApexSVC zero-shot](samples/ApexSVC-Gabriel-1-Vocals-Converted.mp4) | ApexSVC zero shot conversion of the same source using only the reference above. |
+| [ApexSVC + instrumental](samples/ApexSVC-Gabriel-1-Full.mp4) | The ApexSVC vocal mixed back over the original instrumental. |
 
-> Click any file to preview it in GitHub's audio player. Right click and Save As to download.
+> Click any clip to open the GitHub video player. The video track is just a title card, the audio is the real output.
 
 ---
 
