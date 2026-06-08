@@ -320,11 +320,13 @@ class SVCPipeline:
         if self.device.type != "cuda":
             return {"allocated": 0.0, "reserved": 0.0, "peak_allocated": 0.0, "total": 0.0}
         mb = 1024 * 1024
-        free, total = torch.cuda.mem_get_info(self.device)
+        # mem_get_info needs an indexed device; self.device may be plain "cuda"
+        idx = self.device.index if self.device.index is not None else torch.cuda.current_device()
+        free, total = torch.cuda.mem_get_info(idx)
         return {
-            "allocated": torch.cuda.memory_allocated(self.device) / mb,
-            "reserved": torch.cuda.memory_reserved(self.device) / mb,
-            "peak_allocated": torch.cuda.max_memory_allocated(self.device) / mb,
+            "allocated": torch.cuda.memory_allocated(idx) / mb,
+            "reserved": torch.cuda.memory_reserved(idx) / mb,
+            "peak_allocated": torch.cuda.max_memory_allocated(idx) / mb,
             "total": total / mb,
             "free": free / mb,
         }
@@ -335,7 +337,8 @@ class SVCPipeline:
             self.clear_reference_cache()
         if self.device.type == "cuda":
             torch.cuda.empty_cache()
-            torch.cuda.reset_peak_memory_stats(self.device)
+            idx = self.device.index if self.device.index is not None else torch.cuda.current_device()
+            torch.cuda.reset_peak_memory_stats(idx)
 
 
 def _prepare_reference_wavs(paths: list[Path], do_vad_trim: bool) -> list[Path | Tensor]:
