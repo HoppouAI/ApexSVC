@@ -41,23 +41,23 @@ Hear it for yourself. The actual reference fed to ApexSVC was a ~7 minute datase
 
 **Voice preview (Gabriel, 32s)** &mdash; just so you have something to compare against. NOT the reference fed to the model.
 
-https://github.com/HoppouAI/ApexSVC/raw/main/samples/Gabriel-Voice-Reference.mp4
+<video src="https://github.com/HoppouAI/ApexSVC/raw/main/samples/Gabriel-Voice-Reference.mp4" controls width="100%"></video>
 
 **Source vocal** &mdash; the original isolated stem before any conversion.
 
-https://github.com/HoppouAI/ApexSVC/raw/main/samples/ApexSVC-Gabriel-Vocals-Source.mp4
+<video src="https://github.com/HoppouAI/ApexSVC/raw/main/samples/ApexSVC-Gabriel-Vocals-Source.mp4" controls width="100%"></video>
 
 **RVCv2 (trained model)** &mdash; for comparison, RVCv2 conversion using a fully trained model on the same voice.
 
-https://github.com/HoppouAI/ApexSVC/raw/main/samples/ApexSVC-Gabriel-RVC-Vocals.mp4
+<video src="https://github.com/HoppouAI/ApexSVC/raw/main/samples/ApexSVC-Gabriel-RVC-Vocals.mp4" controls width="100%"></video>
 
 **ApexSVC zero-shot** &mdash; same source, no training, reference was a ~7 minute dataset clip (about 5 min usable after VAD).
 
-https://github.com/HoppouAI/ApexSVC/raw/main/samples/ApexSVC-Gabriel-1-Vocals-Converted.mp4
+<video src="https://github.com/HoppouAI/ApexSVC/raw/main/samples/ApexSVC-Gabriel-1-Vocals-Converted.mp4" controls width="100%"></video>
 
 **ApexSVC + instrumental** &mdash; the ApexSVC vocal mixed back over the original instrumental.
 
-https://github.com/HoppouAI/ApexSVC/raw/main/samples/ApexSVC-Gabriel-1-Full.mp4
+<video src="https://github.com/HoppouAI/ApexSVC/raw/main/samples/ApexSVC-Gabriel-1-Full.mp4" controls width="100%"></video>
 
 ---
 
