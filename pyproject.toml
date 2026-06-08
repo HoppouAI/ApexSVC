@@ -1,0 +1,66 @@
+[project]
+name = "svc-experiments"
+version = "0.1.0"
+description = "Zero-shot singing voice conversion via retrieval (kNN over WavLM features) plus neural harmonic synth. No per-voice training, takes a reference (up to ~5 min) and a source, outputs the source sung in the reference voice."
+readme = "README.md"
+requires-python = ">=3.10,<3.12"
+license = { text = "MIT" }
+authors = [{ name = "SVC-Experiments contributors" }]
+
+dependencies = [
+    # core numerics / audio
+    "numpy<2",
+    "scipy>=1.10",
+    "librosa>=0.10.2",
+    "soundfile>=0.12.1",
+    "resampy>=0.4.3",
+    "praat-parselmouth>=0.4.4",
+    # torch is installed via the explicit index in tool.uv.sources below
+    "torch==2.3.1",
+    "torchaudio==2.3.1",
+    # model hub + content encoder pieces
+    "huggingface_hub>=0.23",
+    "transformers>=4.40,<4.45",
+    "safetensors>=0.4",
+    "omegaconf>=2.3",
+    "gdown>=5.2",
+    "torchfcpe>=0.0.4",
+    # vad / preprocessing
+    "silero-vad>=5.1",
+    # ui + cli
+    "gradio>=4.36",
+    "tqdm>=4.66",
+    "click>=8.1",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.5", "pytest>=8"]
+faiss = ["faiss-cpu>=1.8"]
+
+[project.scripts]
+svc = "svc.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["svc", "preprocess"]
+
+# pin pytorch wheels to the cu121 index so CUDA works on windows out of the box
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu121" }]
+torchaudio = [{ index = "pytorch-cu121" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]

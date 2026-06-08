@@ -1,0 +1,44 @@
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# venv / uv
+.venv/
+.python-version.local
+
+# model weights and caches (kept out of git, fetched by scripts/download_models.py)
+checkpoints/
+*.pt
+*.bin
+*.safetensors
+*.ckpt
+
+# outputs
+outputs/
+matching_set/
+
+# audio scratch (allow committed sample fixtures under samples/)
+*.wav
+*.flac
+*.mp3
+*.ogg
+!samples/**/*.wav
+!tests/fixtures/**/*.wav
+
+# vendored upstream (cloned by setup script, not committed)
+third_party/_clone/
+
+# IDE
+.vscode/
+.idea/
+
+# local scratch
+inputs/
+*.log
+uv_sync.log
