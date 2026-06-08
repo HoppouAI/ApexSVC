@@ -368,6 +368,21 @@ class SVCPipeline:
             except Exception as e:
                 log.warning("RMS envelope match failed: %s", e)
 
+        # 10) length match: WavLM's non-padded CNN drops a frame per chunk, so
+        # the vocoded output ends up ~20ms short per 30s chunk. pad/truncate to
+        # the exact source duration so the result lines up with the original
+        # instrumental sample-for-sample.
+        try:
+            info = sf.info(str(source_path))
+            target_samples = int(round(info.frames * self.sample_rate / info.samplerate))
+            cur = wav_np.shape[0]
+            if cur < target_samples:
+                wav_np = np.pad(wav_np, (0, target_samples - cur), mode="constant")
+            elif cur > target_samples:
+                wav_np = wav_np[:target_samples]
+        except Exception as e:
+            log.warning("length match skipped: %s", e)
+
         # release the cuda caching allocator's reserved pool back to the driver.
         # without this Task Manager / nvidia-smi keep showing peak VRAM forever
         # even though torch internally knows the memory is free.
