@@ -37,14 +37,14 @@ Most SVC tools either need you to train a model per voice (RVC, so vits svc) or 
 
 ## Samples
 
-Hear it for yourself. Same source vocal, same reference voice (Gabriel, ~32 s clip), zero shot for ApexSVC, fully trained model for RVC.
+Hear it for yourself. The actual reference fed to ApexSVC was a ~7 minute dataset file (around 5 minutes of usable voice after VAD trims silence and breaths). The 32 second clip below is just a quick voice preview so you know what Gabriel actually sounds like before listening to the conversions. Zero shot for ApexSVC, fully trained model for RVC.
 
 | Clip | What it is |
 | :--- | :--- |
-| [Reference: Gabriel (32s)](samples/Gabriel-Voice-Reference.mp4) | The 32 second reference clip fed to ApexSVC. No training, just this. |
+| [Voice preview: Gabriel (32s)](samples/Gabriel-Voice-Reference.mp4) | A short sample of Gabriel's natural voice, just so you have something to compare against. NOT the reference fed to the model. |
 | [Source vocal](samples/ApexSVC-Gabriel-Vocals-Source.mp4) | The original source vocal (isolated stem) before any conversion. |
 | [RVCv2 (trained model)](samples/ApexSVC-Gabriel-RVC-Vocals.mp4) | RVCv2 conversion using a fully trained model on the same voice, for comparison. |
-| [ApexSVC zero-shot](samples/ApexSVC-Gabriel-1-Vocals-Converted.mp4) | ApexSVC zero shot conversion of the same source using only the reference above. |
+| [ApexSVC zero-shot](samples/ApexSVC-Gabriel-1-Vocals-Converted.mp4) | ApexSVC zero shot conversion. Reference was a ~7 minute dataset clip (about 5 min usable after VAD). |
 | [ApexSVC + instrumental](samples/ApexSVC-Gabriel-1-Full.mp4) | The ApexSVC vocal mixed back over the original instrumental. |
 
 > Click any clip to open the GitHub video player. The video track is just a title card, the audio is the real output.
