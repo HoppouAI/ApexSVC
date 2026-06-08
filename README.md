@@ -316,6 +316,32 @@ See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for license details on ve
 
 ---
 
+## Ethical use and disclaimer
+
+ApexSVC is a voice conversion tool. It can clone the timbre of any voice it has a reference clip for, including real people. Please use it responsibly.
+
+**Don't:**
+- Clone someone's voice without their explicit, informed consent. That includes celebrities, public figures, friends, family, voice actors, content creators, deceased people, and anyone else.
+- Use it for fraud, harassment, defamation, identity theft, non consensual sexual content, fake "evidence", scams, political disinformation, or any other harmful or illegal purpose.
+- Use it to violate the terms of service of any platform you upload converted audio to.
+- Misrepresent generated audio as authentic. If you publish a converted clip, label it clearly so listeners know it's synthesised.
+
+**Do:**
+- Get written permission before cloning a real person's voice, even your own friends.
+- Respect copyright on source audio and reference recordings. Owning a song file does not grant you the right to redistribute a converted version.
+- Disclose AI involvement in anything you publish, both for the audience's sake and to stay on the right side of platform rules.
+- Check the laws in your jurisdiction. Several countries and US states now have specific statutes around deepfake audio, voice cloning, election content, and the right of publicity. Ignorance is not a defense.
+
+**No watermarking.** ApexSVC does not embed any audible or inaudible watermark in its output. There is no automatic provenance signal, no "this was generated" tag, nothing. If you need watermarking for compliance reasons, add it yourself before distribution.
+
+**No content moderation.** ApexSVC is a local tool. It does not phone home, does not screen reference voices, does not block any specific names or personas. Whatever you feed it gets converted.
+
+**No liability.** ApexSVC is provided "as is" without warranty of any kind, express or implied. The authors and contributors are not responsible for how you use it, what you generate with it, or any harm, legal trouble, financial loss, or other damages arising from its use or misuse. You are fully responsible for your own outputs and for complying with all applicable laws and platform rules.
+
+If your use case feels sketchy, it probably is. Don't be the reason this kind of tool gets banned for everyone else.
+
+---
+
 ## License
 
 ApexSVC's own code is licensed under the **GNU Affero General Public License v3.0 or later** (AGPL-3.0-or-later). See [`LICENSE`](LICENSE) for the full text.
