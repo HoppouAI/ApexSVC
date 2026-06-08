@@ -154,24 +154,35 @@ def compute_pitch_shift_factor(source_f0: np.ndarray, ref_wav_path: str,
                                speech_enroll: bool = False) -> float:
     """Compute a multiplicative F0 shift factor from source -> reference so the
     converted singing sits in the reference singer's typical pitch range.
-    With `speech_enroll=True` the factor is bumped by 1.2x to bridge the gap
-    between speaking pitch and singing pitch."""
+
+    Uses median voiced F0 (way more robust than mean against long sustained
+    notes, breaths, octave errors), then snaps the resulting shift to whole
+    semitones and folds it into the closest octave so a source/ref in the same
+    register doesn't get unnecessarily transposed. With `speech_enroll=True`
+    the snapped shift gets +3 semitones to bridge speaking -> singing range.
+    """
     nonzero = source_f0[np.nonzero(source_f0)]
     if nonzero.size == 0:
         return 1.0
-    source_mean = float(np.mean(nonzero))
+    source_med = float(np.median(nonzero))
 
     ref_wav, ref_fs = load_wav(ref_wav_path, sr=DEFAULT_SR)
     ref_f0 = _parselmouth_f0(ref_wav, sr=ref_fs, frame_period=DEFAULT_FRAME_PERIOD)
     ref_nonzero = ref_f0[np.nonzero(ref_f0)]
     if ref_nonzero.size == 0:
         return 1.0
-    ref_mean = float(np.mean(ref_nonzero))
+    ref_med = float(np.median(ref_nonzero))
 
-    factor = ref_mean / source_mean
+    # raw shift in semitones (continuous)
+    raw_st = 12.0 * np.log2(ref_med / source_med)
+    # fold into [-6, +6) so cross-octave refs don't pull the song an octave
+    # away from the original key. wraps via modulo on the semitone axis.
+    folded_st = ((raw_st + 6.0) % 12.0) - 6.0
+    # snap to nearest whole semitone so output lands in-key instead of between
+    snapped_st = float(np.round(folded_st))
     if speech_enroll:
-        factor *= 1.2
-    return factor
+        snapped_st += 3.0  # speaking voices sit ~3-4 st below singing
+    return semitone_factor(snapped_st)
 
 
 def semitone_factor(semitones: float) -> float:

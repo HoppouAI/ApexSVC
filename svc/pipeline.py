@@ -175,7 +175,10 @@ class SVCPipeline:
             factor = compute_pitch_shift_factor(
                 f0_src, str(reference_paths[0]), speech_enroll=cfg.speech_enroll,
             )
-        _emit("f0", 1.0, f"F0 shift factor: {factor:.3f}")
+        # report the snapped semitone shift so it's obvious what auto chose
+        inferred_st = 12.0 * float(np.log2(factor)) if factor > 0 else 0.0
+        _emit("f0", 1.0,
+              f"F0 shift factor: {factor:.3f} ({inferred_st:+.1f} st)")
         f0_src = f0_src * factor
         pitch_src = coarse_f0(f0_src, f0_bins=int(self.h.f0_bins))
 

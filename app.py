@@ -364,12 +364,12 @@ def build_ui() -> gr.Blocks:
 
                             with gr.Row():
                                 auto_pitch = gr.Checkbox(
-                                    value=True, label="Auto pitch align",
-                                    info="match source mean F0 to reference",
+                                    value=False, label="Auto pitch align",
+                                    info="snaps to nearest whole semitone, folds to closest octave. leave off if source is already in a sensible range",
                                 )
                                 speech_enroll = gr.Checkbox(
                                     value=False, label="Reference is speech (not singing)",
-                                    info="multiplies auto pitch by 1.2x",
+                                    info="adds +3 semitones on top of auto",
                                 )
 
                             pitch_shift = gr.Slider(
