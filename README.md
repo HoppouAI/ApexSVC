@@ -39,25 +39,25 @@ Most SVC tools either need you to train a model per voice (RVC, so vits svc) or 
 
 Hear it for yourself. The actual reference fed to ApexSVC was a ~7 minute dataset file (around 5 minutes of usable voice after VAD trims silence and breaths). The 32 second clip below is just a quick voice preview so you know what Gabriel actually sounds like before listening to the conversions. Zero shot for ApexSVC, fully trained model for RVC.
 
-**Voice preview (Gabriel, 32s)** &mdash; just so you have something to compare against. NOT the reference fed to the model.
+**Voice preview (Gabriel, 32s).** Just so you have something to compare against. NOT the reference fed to the model.
 
-<video src="https://github.com/HoppouAI/ApexSVC/raw/main/samples/Gabriel-Voice-Reference.mp4" controls width="100%"></video>
+<video src="https://cdn.barricade.dev/raw/Gabriel-Voice-Reference.mp4" controls width="100%"></video>
 
-**Source vocal** &mdash; the original isolated stem before any conversion.
+**Source vocal.** The original isolated stem before any conversion.
 
-<video src="https://github.com/HoppouAI/ApexSVC/raw/main/samples/ApexSVC-Gabriel-Vocals-Source.mp4" controls width="100%"></video>
+<video src="https://cdn.barricade.dev/raw/ApexSVC-Gabriel-Vocals-Source.mp4" controls width="100%"></video>
 
-**RVCv2 (trained model)** &mdash; for comparison, RVCv2 conversion using a fully trained model on the same voice.
+**RVCv2 (trained model).** For comparison, RVCv2 conversion using a fully trained model on the same voice.
 
-<video src="https://github.com/HoppouAI/ApexSVC/raw/main/samples/ApexSVC-Gabriel-RVC-Vocals.mp4" controls width="100%"></video>
+<video src="https://cdn.barricade.dev/raw/ApexSVC-Gabriel-RVC-Vocals.mp4" controls width="100%"></video>
 
-**ApexSVC zero-shot** &mdash; same source, no training, reference was a ~7 minute dataset clip (about 5 min usable after VAD).
+**ApexSVC zero shot.** Same source, no training, reference was a ~7 minute dataset clip (about 5 min usable after VAD).
 
-<video src="https://github.com/HoppouAI/ApexSVC/raw/main/samples/ApexSVC-Gabriel-1-Vocals-Converted.mp4" controls width="100%"></video>
+<video src="https://cdn.barricade.dev/raw/ApexSVC-Gabriel-1-Vocals-Converted.mp4" controls width="100%"></video>
 
-**ApexSVC + instrumental** &mdash; the ApexSVC vocal mixed back over the original instrumental.
+**ApexSVC plus instrumental.** The ApexSVC vocal mixed back over the original instrumental.
 
-<video src="https://github.com/HoppouAI/ApexSVC/raw/main/samples/ApexSVC-Gabriel-1-Full.mp4" controls width="100%"></video>
+<video src="https://cdn.barricade.dev/raw/ApexSVC-Gabriel-1-Full.mp4" controls width="100%"></video>
 
 ---
 
