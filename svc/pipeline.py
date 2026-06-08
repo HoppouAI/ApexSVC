@@ -22,7 +22,14 @@ from torch import Tensor
 
 from .content import WavLMEncoder
 from .match import knn_match
-from .pitch import coarse_f0, compute_f0, compute_pitch_shift_factor, semitone_factor
+from .pitch import (
+    autotune_f0,
+    coarse_f0,
+    compute_f0,
+    compute_pitch_shift_factor,
+    median_filter_f0,
+    semitone_factor,
+)
 from .synth import GeneratorNSF
 from .utils.audio import extract_voiced_area, load_wav
 from .utils.tools import AttrDict
@@ -31,6 +38,7 @@ log = logging.getLogger(__name__)
 
 DEFAULT_CHECKPOINT_DIR = Path("checkpoints")
 DEFAULT_OUTPUT_SR = 24000
+DEFAULT_VOICE_DIR = Path("voices")
 
 ProgressFn = Callable[[float, str], None]
 
@@ -38,12 +46,16 @@ ProgressFn = Callable[[float, str], None]
 @dataclass
 class ConversionConfig:
     topk: int = 4
-    pitch_shift_semitones: float | None = None  # None => auto from ref mean F0
+    pitch_shift_semitones: float | None = None  # None => auto from ref median F0
     speech_enroll: bool = False
     alpha: float = 0.0
     target_loudness_db: float | None = -16.0
     vad_trim_reference: bool = True
     f0_method: str = "fcpe"  # "fcpe" (default, neural), "praat", "pyin", "median"
+    f0_filter_radius: int = 3   # median filter radius for the F0 contour (1 = off)
+    autotune: bool = False      # snap voiced F0 to nearest equal-temp semitone
+    protect: float = 0.5        # 0..1, source weight blended into voiceless frames
+    rms_mix_rate: float = 0.25  # 0..1, copy source RMS envelope onto output
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     checkpoint_dir: Path = field(default_factory=lambda: DEFAULT_CHECKPOINT_DIR)
 
@@ -83,9 +95,53 @@ class SVCPipeline:
         # huge speedup when the user re-converts with the same reference
         # (Gradio UI, batch jobs, etc).
         self._ref_cache: dict[tuple, Tensor] = {}
+        self.voice_dir = DEFAULT_VOICE_DIR
+        self.voice_dir.mkdir(parents=True, exist_ok=True)
+        (self.voice_dir / "cache").mkdir(parents=True, exist_ok=True)
 
     def clear_reference_cache(self) -> None:
         self._ref_cache.clear()
+
+    def _ref_disk_key(self, paths: list[Path], do_vad_trim: bool) -> str:
+        import hashlib
+        h = hashlib.sha1()
+        for p in paths:
+            try:
+                st = p.stat()
+                h.update(str(p.resolve()).encode("utf-8"))
+                h.update(str(st.st_mtime_ns).encode("utf-8"))
+                h.update(str(st.st_size).encode("utf-8"))
+            except OSError:
+                h.update(str(p.resolve()).encode("utf-8"))
+        h.update(b"vad" if do_vad_trim else b"raw")
+        return h.hexdigest()[:16]
+
+    def save_voice_profile(self, name: str, reference_paths: list[str | Path],
+                           vad_trim: bool = True) -> Path:
+        """Encode the given reference(s) and save as voices/<name>.npz so they
+        can be reloaded in ~milliseconds instead of re-running WavLM."""
+        paths = [Path(p) for p in reference_paths]
+        wavs = _prepare_reference_wavs(paths, vad_trim)
+        feats = self.encoder.encode_paths(wavs).to(self.device)
+        out = self.voice_dir / f"{name}.npz"
+        np.savez(out, feats=feats.cpu().numpy().astype(np.float32))
+        log.info("saved voice profile %s (%d frames) -> %s",
+                 name, feats.shape[0], out)
+        return out
+
+    def load_voice_profile(self, name: str) -> Tensor:
+        """Load a previously saved voice profile by name."""
+        p = self.voice_dir / f"{name}.npz"
+        if not p.exists():
+            raise FileNotFoundError(f"voice profile not found: {p}")
+        data = np.load(p)
+        feats = torch.from_numpy(data["feats"]).to(self.device)
+        log.info("loaded voice profile %s (%d frames)", name, feats.shape[0])
+        return feats
+
+    def list_voice_profiles(self) -> list[str]:
+        return sorted(p.stem for p in self.voice_dir.glob("*.npz")
+                      if p.parent == self.voice_dir)
 
     def _cached_ref_features(self, paths: list[Path], do_vad_trim: bool,
                               on_chunk=None) -> Tensor:
@@ -99,11 +155,30 @@ class SVCPipeline:
         key = (tuple(key_parts), bool(do_vad_trim))
         hit = self._ref_cache.get(key)
         if hit is not None:
-            log.info("reference cache HIT: %d frames", hit.shape[0])
+            log.info("reference cache HIT (memory): %d frames", hit.shape[0])
             return hit
+        # disk cache: hash of (path, mtime, size, vad-flag) -> npz
+        disk_key = self._ref_disk_key(paths, do_vad_trim)
+        disk_path = self.voice_dir / "cache" / f"{disk_key}.npz"
+        if disk_path.exists():
+            try:
+                feats = torch.from_numpy(np.load(disk_path)["feats"]).to(self.device)
+                log.info("reference cache HIT (disk): %d frames from %s",
+                         feats.shape[0], disk_path.name)
+                if len(self._ref_cache) >= 8:
+                    self._ref_cache.pop(next(iter(self._ref_cache)))
+                self._ref_cache[key] = feats
+                return feats
+            except Exception as e:
+                log.warning("disk cache read failed (%s); recomputing", e)
+
         ref_wavs_for_encoder = _prepare_reference_wavs(paths, do_vad_trim)
         feats = self.encoder.encode_paths(ref_wavs_for_encoder,
                                           on_chunk=on_chunk).to(self.device)
+        try:
+            np.savez(disk_path, feats=feats.cpu().numpy().astype(np.float32))
+        except Exception as e:
+            log.warning("disk cache write failed: %s", e)
         # cap cache size to keep VRAM bounded (each entry can be ~tens of MB)
         if len(self._ref_cache) >= 8:
             self._ref_cache.pop(next(iter(self._ref_cache)))
@@ -168,7 +243,7 @@ class SVCPipeline:
         _emit("f0", 0.0, f"computing F0 ({cfg.f0_method})")
         t = time.perf_counter()
         f0_src = compute_f0(str(source_path), method=cfg.f0_method)
-        _emit("f0", 0.5, f"F0 done in {time.perf_counter()-t:.2f}s")
+        _emit("f0", 0.4, f"F0 done in {time.perf_counter()-t:.2f}s")
         if cfg.pitch_shift_semitones is not None:
             factor = semitone_factor(cfg.pitch_shift_semitones)
         else:
@@ -177,9 +252,18 @@ class SVCPipeline:
             )
         # report the snapped semitone shift so it's obvious what auto chose
         inferred_st = 12.0 * float(np.log2(factor)) if factor > 0 else 0.0
-        _emit("f0", 1.0,
+        _emit("f0", 0.6,
               f"F0 shift factor: {factor:.3f} ({inferred_st:+.1f} st)")
         f0_src = f0_src * factor
+        # smooth out octave-jump outliers in the F0 contour
+        if cfg.f0_filter_radius and cfg.f0_filter_radius > 1:
+            f0_src = median_filter_f0(f0_src, radius=int(cfg.f0_filter_radius))
+            _emit("f0", 0.8,
+                  f"F0 median filter r={int(cfg.f0_filter_radius)}")
+        if cfg.autotune:
+            f0_src = autotune_f0(f0_src)
+            _emit("f0", 0.9, "F0 autotune (snap to nearest semitone)")
+        _emit("f0", 1.0, "F0 ready")
         pitch_src = coarse_f0(f0_src, f0_bins=int(self.h.f0_bins))
 
         query_mask_np = extract_voiced_area(str(source_path), hop_size=480, energy_thres=0.1)
@@ -204,10 +288,18 @@ class SVCPipeline:
             query_mask = torch.cat([query_mask,
                                     torch.zeros(pad, dtype=query_mask.dtype,
                                                 device=query_mask.device)])
-        # voiced mask: matched features only where voiced, else keep raw source
-        # features. This stops the matcher from inventing pitch on silence.
-        mask_bcast = query_mask[..., None].repeat([1, matched.shape[-1]])
-        out_feats = matched * mask_bcast + query_seq * (~mask_bcast.bool())
+        # blend matched (target) and source features per frame. on voiced
+        # frames we always lean fully on matched (target voice), on voiceless
+        # frames `protect` controls how much raw source we mix back in to keep
+        # consonants crisp without leaking source timbre across the whole song.
+        # protect=0 -> pure matched everywhere (may sound 'alien' on consonants).
+        # protect=1 -> raw source on voiceless (current behaviour, safest, can
+        # leak source).
+        protect = float(max(0.0, min(1.0, cfg.protect)))
+        mask_v = query_mask.float()[..., None]              # 1.0 voiced, 0 unvoiced
+        unvoiced_w = (1.0 - mask_v) * protect              # source weight on unvoiced
+        matched_w = mask_v + (1.0 - mask_v) * (1.0 - protect)  # matched weight
+        out_feats = matched * matched_w + query_seq * unvoiced_w
 
         f0_len = query_len * 2
         f0_src = _align_length(f0_src, f0_len)
@@ -236,7 +328,7 @@ class SVCPipeline:
 
         # free the big intermediates before loudness/clip so empty_cache below
         # can actually hand memory back to the driver
-        del query_seq, matched, out_feats, f0_t, pitch_t, query_mask, mask_bcast
+        del query_seq, matched, out_feats, f0_t, pitch_t, query_mask
 
         # 7) Loudness match
         _emit("fin", 0.2, "loudness match")
@@ -253,6 +345,18 @@ class SVCPipeline:
         peak = float(np.abs(wav_np).max())
         if peak > 0.98:
             wav_np = wav_np * (0.98 / peak)
+
+        # 9) RMS envelope match: copy source loudness contour onto output so it
+        # 'breathes' with the original performance instead of being flatlined.
+        if cfg.rms_mix_rate and cfg.rms_mix_rate > 0:
+            try:
+                wav_np = _apply_rms_envelope(
+                    wav_np, str(source_path), self.sample_rate,
+                    rate=float(cfg.rms_mix_rate),
+                )
+                _emit("fin", 0.8, f"RMS envelope match rate={cfg.rms_mix_rate:.2f}")
+            except Exception as e:
+                log.warning("RMS envelope match failed: %s", e)
 
         # release the cuda caching allocator's reserved pool back to the driver.
         # without this Task Manager / nvidia-smi keep showing peak VRAM forever
@@ -377,6 +481,46 @@ def _align_length(arr: np.ndarray, target: int) -> np.ndarray:
         pad = target - len(arr)
         return np.pad(arr, (0, pad), mode="edge")
     return arr
+
+
+def _apply_rms_envelope(out_wav: np.ndarray, source_path: str, sr: int,
+                        rate: float, frame_length: int = 2048,
+                        hop_length: int = 256) -> np.ndarray:
+    """Borrow the source's per-frame RMS envelope onto the output waveform.
+    `rate` in [0, 1] sets how strongly to match (0 = no change, 1 = exact match)
+    via a per-sample gain `(src_rms / out_rms) ** rate`. Smooths the gain curve
+    by linear interp from the frame grid so we don't get zipper noise."""
+    import librosa
+
+    src, src_sr = sf.read(source_path, always_2d=False)
+    if src.ndim > 1:
+        src = src.mean(axis=1)
+    if src_sr != sr:
+        src = librosa.resample(src.astype(np.float32), orig_sr=src_sr, target_sr=sr)
+    n = min(len(src), len(out_wav))
+    src = src[:n].astype(np.float32)
+    out = out_wav[:n].astype(np.float32).copy()
+
+    src_rms = librosa.feature.rms(y=src, frame_length=frame_length,
+                                  hop_length=hop_length).flatten()
+    out_rms = librosa.feature.rms(y=out, frame_length=frame_length,
+                                  hop_length=hop_length).flatten()
+    eps = 1e-6
+    ratio = (src_rms + eps) / (out_rms + eps)
+    ratio = ratio ** float(rate)
+
+    frame_centers = (np.arange(len(ratio)) + 0.5) * hop_length
+    sample_idx = np.arange(n)
+    gain = np.interp(sample_idx, frame_centers, ratio).astype(np.float32)
+    out = out * gain
+    # protect against any rare clipping introduced by envelope copy
+    peak = float(np.abs(out).max())
+    if peak > 0.99:
+        out = out * (0.99 / peak)
+    if len(out_wav) > n:
+        # tail beyond source length: leave untouched
+        out = np.concatenate([out, out_wav[n:]])
+    return out
 
 
 def convert(source_path: str | Path,

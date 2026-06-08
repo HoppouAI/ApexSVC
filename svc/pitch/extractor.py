@@ -134,6 +134,45 @@ def compute_f0(wav_path: str, sr: int = DEFAULT_SR,
     raise ValueError(f"unknown F0 method: {method!r}")
 
 
+def median_filter_f0(f0: np.ndarray, radius: int = 3) -> np.ndarray:
+    """Median-filter a voiced F0 contour to kill outlier frames (octave jumps,
+    spurious unvoiced->voiced single-frame blips). Only operates on the voiced
+    mask so unvoiced gaps stay zero. `radius` is the window size; values <= 1
+    are no-ops."""
+    if radius is None or int(radius) <= 1:
+        return f0
+    r = int(radius)
+    if r % 2 == 0:
+        r += 1  # median filter wants odd
+    voiced = f0 > 0
+    if not np.any(voiced):
+        return f0
+    out = f0.astype(np.float64).copy()
+    # interpolate over unvoiced for filtering then re-zero
+    idx = np.arange(len(out))
+    voiced_idx = idx[voiced]
+    out_interp = np.interp(idx, voiced_idx, out[voiced])
+    half = r // 2
+    pad = np.pad(out_interp, half, mode="edge")
+    windows = np.lib.stride_tricks.sliding_window_view(pad, r)
+    filt = np.median(windows, axis=-1)
+    filt[~voiced] = 0.0
+    return filt
+
+
+def autotune_f0(f0: np.ndarray) -> np.ndarray:
+    """Snap each voiced F0 frame to the nearest equal-tempered semitone.
+    Rescues off-key source vocals; harmless on already in-tune ones."""
+    voiced = f0 > 0
+    if not np.any(voiced):
+        return f0
+    out = f0.astype(np.float64).copy()
+    midi = 69.0 + 12.0 * np.log2(out[voiced] / 440.0)
+    snapped = np.round(midi)
+    out[voiced] = 440.0 * (2.0 ** ((snapped - 69.0) / 12.0))
+    return out
+
+
 def coarse_f0(f0: np.ndarray, f0_bins: int = 256, f0_min: float = 65.0,
               f0_max: float = 1000.0) -> np.ndarray:
     """Bucket continuous F0 (Hz) into integer bin indices on a mel scale, to

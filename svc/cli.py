@@ -43,14 +43,23 @@ def main(verbose: int) -> None:
               type=click.Choice(["fcpe", "praat", "pyin", "median"]), default="fcpe",
               show_default=True,
               help="F0 tracker: fcpe (neural, singing-grade, default), praat (fast classical), pyin (slow robust), median (both classical).")
+@click.option("--f0-filter-radius", type=int, default=3, show_default=True,
+              help="Median filter radius for F0 contour. 1 = off, 3 / 5 / 7 progressively smoother.")
+@click.option("--autotune", is_flag=True,
+              help="Snap each voiced F0 frame to the nearest equal-temp semitone.")
+@click.option("--protect", type=float, default=0.5, show_default=True,
+              help="Source weight on voiceless frames (0..1). Lower = more target voice on consonants, higher = clearer source consonants but more leak.")
+@click.option("--rms-mix-rate", type=float, default=0.25, show_default=True,
+              help="Strength of source RMS envelope copy onto output (0..1). 0 = flat, 1 = exact source loudness.")
 @click.option("--checkpoint-dir", type=click.Path(file_okay=False, path_type=Path),
               default=DEFAULT_CHECKPOINT_DIR, show_default=True)
 @click.option("--device", type=str, default=None,
               help="Override device (cuda / cpu). Auto-detects by default.")
 def convert(source: Path, references: tuple[Path, ...], out_path: Path, topk: int,
             pitch_shift_semitones: float | None, speech_enroll: bool, alpha: float,
-            vad_trim_reference: bool, f0_method: str, checkpoint_dir: Path,
-            device: str | None) -> None:
+            vad_trim_reference: bool, f0_method: str, f0_filter_radius: int,
+            autotune: bool, protect: float, rms_mix_rate: float,
+            checkpoint_dir: Path, device: str | None) -> None:
     """Convert SRC to sound like REF, write to OUT."""
     pipe = SVCPipeline(checkpoint_dir=checkpoint_dir, device=device)
     cfg = ConversionConfig(
@@ -60,6 +69,10 @@ def convert(source: Path, references: tuple[Path, ...], out_path: Path, topk: in
         alpha=alpha,
         vad_trim_reference=vad_trim_reference,
         f0_method=f0_method,
+        f0_filter_radius=f0_filter_radius,
+        autotune=autotune,
+        protect=protect,
+        rms_mix_rate=rms_mix_rate,
         device=str(pipe.device),
         checkpoint_dir=checkpoint_dir,
     )

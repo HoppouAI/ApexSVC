@@ -121,7 +121,8 @@ def _list_example_pairs() -> list[list]:
 
 def run_conversion(source_path, reference_files, f0_method, topk, auto_pitch,
                    pitch_shift, speech_enroll, alpha, vad_trim, loudness_db,
-                   save_to_outputs, progress=gr.Progress()):
+                   save_to_outputs, f0_filter_radius, autotune, protect,
+                   rms_mix_rate, progress=gr.Progress()):
     if not source_path:
         raise gr.Error("Upload a source audio file first.")
     if not reference_files:
@@ -138,6 +139,10 @@ def run_conversion(source_path, reference_files, f0_method, topk, auto_pitch,
         vad_trim_reference=bool(vad_trim),
         target_loudness_db=float(loudness_db) if loudness_db is not None else None,
         f0_method=str(f0_method),
+        f0_filter_radius=int(f0_filter_radius),
+        autotune=bool(autotune),
+        protect=float(protect),
+        rms_mix_rate=float(rms_mix_rate),
         device=str(pipe.device),
     )
 
@@ -171,6 +176,9 @@ def run_conversion(source_path, reference_files, f0_method, topk, auto_pitch,
         f"RTF **{rtf:.3f}** ({xrt:.1f}x realtime)  \n"
         f"Output: `{out_path}` ({wav.shape[0] / sr:.2f}s @ {sr} Hz)  \n"
         f"Settings: f0=`{cfg.f0_method}` topk=`{cfg.topk}` alpha=`{cfg.alpha:.2f}` "
+        f"protect=`{cfg.protect:.2f}` rms=`{cfg.rms_mix_rate:.2f}` "
+        f"f0-filt=`{cfg.f0_filter_radius}`"
+        f"{' autotune' if cfg.autotune else ''} "
         f"vad={'on' if cfg.vad_trim_reference else 'off'} "
         f"pitch={'auto' if cfg.pitch_shift_semitones is None else f'{cfg.pitch_shift_semitones:+.1f} st'}"
     )
@@ -392,6 +400,29 @@ def build_ui() -> gr.Blocks:
                                     info="timestamped filename",
                                 )
 
+                            with gr.Accordion("Quality (Applio-style)", open=True):
+                                with gr.Row():
+                                    protect = gr.Slider(
+                                        0.0, 1.0, value=0.5, step=0.05,
+                                        label="Voiceless protect",
+                                        info="source weight on consonants. 0 = pure target (may sound alien), 1 = full source (may leak)",
+                                    )
+                                    rms_mix_rate = gr.Slider(
+                                        0.0, 1.0, value=0.25, step=0.05,
+                                        label="RMS envelope match",
+                                        info="copy source loudness contour. 0 = flat, 1 = exact source dynamics",
+                                    )
+                                with gr.Row():
+                                    f0_filter_radius = gr.Slider(
+                                        1, 7, value=3, step=2,
+                                        label="F0 median filter radius",
+                                        info="smooth pitch outliers. 1 = off, 3 mild, 5/7 stronger",
+                                    )
+                                    autotune = gr.Checkbox(
+                                        value=False, label="Pitch autotune",
+                                        info="snap each voiced frame to nearest semitone",
+                                    )
+
                             loudness_db = gr.Slider(
                                 -36.0, -6.0, value=-16.0, step=0.5,
                                 label="Target loudness (LUFS)",
@@ -437,7 +468,8 @@ def build_ui() -> gr.Blocks:
         go.click(
             run_conversion,
             inputs=[source, refs, f0_method, topk, auto_pitch, pitch_shift,
-                    speech_enroll, alpha, vad_trim, loudness_db, save_to_outputs],
+                    speech_enroll, alpha, vad_trim, loudness_db, save_to_outputs,
+                    f0_filter_radius, autotune, protect, rms_mix_rate],
             outputs=[out_audio, status],
         ).then(_vram_md, outputs=vram_md)
     return demo

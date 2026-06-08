@@ -22,6 +22,7 @@ checkpoints/
 # outputs
 outputs/
 matching_set/
+voices/
 
 # audio scratch (allow committed sample fixtures under samples/)
 *.wav

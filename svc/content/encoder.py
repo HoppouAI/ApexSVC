@@ -79,6 +79,12 @@ class WavLMEncoder(nn.Module):
         elif wav.dim() == 2 and wav.shape[0] > 1:
             wav = wav.mean(dim=0, keepdim=True)
 
+        # peak-normalise to -1 dBFS so quiet sources/refs don't sit at lower
+        # cosine magnitudes in the kNN matching pool. small but consistent win.
+        peak = wav.abs().max()
+        if peak > 1e-6:
+            wav = wav * (0.891 / peak)  # 0.891 ~= -1 dBFS
+
         # optional torchaudio.Vad trim on the head + tail (kept for parity with
         # the upstream get_features; in practice we use silero-vad upstream of
         # this call instead).
