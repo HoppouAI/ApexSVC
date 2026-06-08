@@ -41,23 +41,23 @@ Hear it for yourself. The actual reference fed to ApexSVC was a ~7 minute datase
 
 **Voice preview (Gabriel, 32s).** Just so you have something to compare against. NOT the reference fed to the model.
 
-<video src="https://cdn.barricade.dev/raw/Gabriel-Voice-Reference.mp4" controls width="100%"></video>
+https://github.com/user-attachments/assets/c54db956-8f9e-4747-87b5-4753399adc67
 
 **Source vocal.** The original isolated stem before any conversion.
 
-<video src="https://cdn.barricade.dev/raw/ApexSVC-Gabriel-Vocals-Source.mp4" controls width="100%"></video>
+https://github.com/user-attachments/assets/2fe45870-f5ee-45b8-8c7d-c1898fc98442
 
 **RVCv2 (trained model).** For comparison, RVCv2 conversion using a fully trained model on the same voice.
 
-<video src="https://cdn.barricade.dev/raw/ApexSVC-Gabriel-RVC-Vocals.mp4" controls width="100%"></video>
+https://github.com/user-attachments/assets/b4b4d665-8b56-4c61-99da-bc98c98ddb42
 
 **ApexSVC zero shot.** Same source, no training, reference was a ~7 minute dataset clip (about 5 min usable after VAD).
 
-<video src="https://cdn.barricade.dev/raw/ApexSVC-Gabriel-1-Vocals-Converted.mp4" controls width="100%"></video>
+https://github.com/user-attachments/assets/605a018c-7e53-4dea-bd3b-15ec556031ed
 
 **ApexSVC plus instrumental.** The ApexSVC vocal mixed back over the original instrumental.
 
-<video src="https://cdn.barricade.dev/raw/ApexSVC-Gabriel-1-Full.mp4" controls width="100%"></video>
+https://github.com/user-attachments/assets/33ccc10c-1037-49eb-8bcd-2b04d76c3d12
 
 ---
 
