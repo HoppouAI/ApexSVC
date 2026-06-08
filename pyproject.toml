@@ -1,11 +1,11 @@
 [project]
-name = "svc-experiments"
+name = "apexsvc"
 version = "0.1.0"
 description = "Zero-shot singing voice conversion via retrieval (kNN over WavLM features) plus neural harmonic synth. No per-voice training, takes a reference (up to ~5 min) and a source, outputs the source sung in the reference voice."
 readme = "README.md"
 requires-python = ">=3.10,<3.12"
-license = { text = "MIT" }
-authors = [{ name = "SVC-Experiments contributors" }]
+license = { text = "AGPL-3.0-or-later" }
+authors = [{ name = "ApexSVC contributors" }]
 
 dependencies = [
     # core numerics / audio

@@ -47,6 +47,67 @@ wheels = [
 ]
 
 [[package]]
+name = "apexsvc"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "click" },
+    { name = "gdown" },
+    { name = "gradio" },
+    { name = "huggingface-hub" },
+    { name = "librosa" },
+    { name = "numpy" },
+    { name = "omegaconf" },
+    { name = "praat-parselmouth" },
+    { name = "resampy" },
+    { name = "safetensors" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "silero-vad" },
+    { name = "soundfile" },
+    { name = "torch" },
+    { name = "torchaudio" },
+    { name = "torchfcpe" },
+    { name = "tqdm" },
+    { name = "transformers" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "ruff" },
+]
+faiss = [
+    { name = "faiss-cpu" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "click", specifier = ">=8.1" },
+    { name = "faiss-cpu", marker = "extra == 'faiss'", specifier = ">=1.8" },
+    { name = "gdown", specifier = ">=5.2" },
+    { name = "gradio", specifier = ">=4.36" },
+    { name = "huggingface-hub", specifier = ">=0.23" },
+    { name = "librosa", specifier = ">=0.10.2" },
+    { name = "numpy", specifier = "<2" },
+    { name = "omegaconf", specifier = ">=2.3" },
+    { name = "praat-parselmouth", specifier = ">=0.4.4" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
+    { name = "resampy", specifier = ">=0.4.3" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },
+    { name = "safetensors", specifier = ">=0.4" },
+    { name = "scipy", specifier = ">=1.10" },
+    { name = "silero-vad", specifier = ">=5.1" },
+    { name = "soundfile", specifier = ">=0.12.1" },
+    { name = "torch", specifier = "==2.3.1", index = "https://download.pytorch.org/whl/cu121" },
+    { name = "torchaudio", specifier = "==2.3.1", index = "https://download.pytorch.org/whl/cu121" },
+    { name = "torchfcpe", specifier = ">=0.0.4" },
+    { name = "tqdm", specifier = ">=4.66" },
+    { name = "transformers", specifier = ">=4.40,<4.45" },
+]
+provides-extras = ["dev", "faiss"]
+
+[[package]]
 name = "audioread"
 version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1628,67 +1689,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/25/44/ec35f1b6e83094b99
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1c/54/196d0c1db10af76baa4f64894448505d60d3cdf70ef92cbb35f46a4e4c71/starlette-1.2.1-py3-none-any.whl", hash = "sha256:4de0082d08c8f6764a85a54cf1120d6939507a19905c7768acad2a9f875d2b89", size = 73350, upload-time = "2026-05-31T01:07:50.09Z" },
 ]
-
-[[package]]
-name = "svc-experiments"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "click" },
-    { name = "gdown" },
-    { name = "gradio" },
-    { name = "huggingface-hub" },
-    { name = "librosa" },
-    { name = "numpy" },
-    { name = "omegaconf" },
-    { name = "praat-parselmouth" },
-    { name = "resampy" },
-    { name = "safetensors" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "silero-vad" },
-    { name = "soundfile" },
-    { name = "torch" },
-    { name = "torchaudio" },
-    { name = "torchfcpe" },
-    { name = "tqdm" },
-    { name = "transformers" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "ruff" },
-]
-faiss = [
-    { name = "faiss-cpu" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.1" },
-    { name = "faiss-cpu", marker = "extra == 'faiss'", specifier = ">=1.8" },
-    { name = "gdown", specifier = ">=5.2" },
-    { name = "gradio", specifier = ">=4.36" },
-    { name = "huggingface-hub", specifier = ">=0.23" },
-    { name = "librosa", specifier = ">=0.10.2" },
-    { name = "numpy", specifier = "<2" },
-    { name = "omegaconf", specifier = ">=2.3" },
-    { name = "praat-parselmouth", specifier = ">=0.4.4" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
-    { name = "resampy", specifier = ">=0.4.3" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },
-    { name = "safetensors", specifier = ">=0.4" },
-    { name = "scipy", specifier = ">=1.10" },
-    { name = "silero-vad", specifier = ">=5.1" },
-    { name = "soundfile", specifier = ">=0.12.1" },
-    { name = "torch", specifier = "==2.3.1", index = "https://download.pytorch.org/whl/cu121" },
-    { name = "torchaudio", specifier = "==2.3.1", index = "https://download.pytorch.org/whl/cu121" },
-    { name = "torchfcpe", specifier = ">=0.0.4" },
-    { name = "tqdm", specifier = ">=4.66" },
-    { name = "transformers", specifier = ">=4.40,<4.45" },
-]
-provides-extras = ["dev", "faiss"]
 
 [[package]]
 name = "sympy"

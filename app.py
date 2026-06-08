@@ -1,4 +1,4 @@
-"""Gradio UI for SVC-Experiments.
+"""Gradio UI for ApexSVC.
 
 Wraps `SVCPipeline` so the UI and CLI share the same converter. Adds tabs
 for a step by step guide, settings tips, and troubleshooting.
@@ -306,11 +306,11 @@ The exact same `SVCPipeline.convert(...)` runs from the CLI, so anything you tun
 
 
 def build_ui() -> gr.Blocks:
-    with gr.Blocks(title="SVC-Experiments") as demo:
+    with gr.Blocks(title="ApexSVC") as demo:
         gr.HTML(
             """
             <div class="svc-hero">
-                <h1>SVC-Experiments</h1>
+                <h1>ApexSVC</h1>
                 <p>Zero-shot singing voice conversion. WavLM + kNN retrieval + NSF vocoder, with FCPE neural pitch tracking.</p>
             </div>
             """
