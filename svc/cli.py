@@ -43,14 +43,16 @@ def main(verbose: int) -> None:
               type=click.Choice(["fcpe", "praat", "pyin", "median"]), default="fcpe",
               show_default=True,
               help="F0 tracker: fcpe (neural, singing-grade, default), praat (fast classical), pyin (slow robust), median (both classical).")
-@click.option("--f0-filter-radius", type=int, default=3, show_default=True,
+@click.option("--f0-filter-radius", type=int, default=1, show_default=True,
               help="Median filter radius for F0 contour. 1 = off, 3 / 5 / 7 progressively smoother.")
-@click.option("--autotune", is_flag=True,
-              help="Snap each voiced F0 frame to the nearest equal-temp semitone.")
-@click.option("--protect", type=float, default=0.5, show_default=True,
-              help="Source weight on voiceless frames (0..1). Lower = more target voice on consonants, higher = clearer source consonants but more leak.")
-@click.option("--rms-mix-rate", type=float, default=0.25, show_default=True,
-              help="Strength of source RMS envelope copy onto output (0..1). 0 = flat, 1 = exact source loudness.")
+@click.option("--autotune-strength", type=float, default=0.0, show_default=True,
+              help="Pitch correction toward nearest semitone. 0 = off, 0.3 subtle, 0.7 noticeable, 1.0 full snap.")
+@click.option("--autotune-retune-ms", type=float, default=60.0, show_default=True,
+              help="Retune time constant (ms). Lower = snappier T-Pain feel, higher = smoother natural glide.")
+@click.option("--protect", type=float, default=0.0, show_default=True,
+              help="Source weight on voiceless frames (0..1). 0 = off (full target), higher = more source consonants but more leak.")
+@click.option("--rms-mix-rate", type=float, default=0.0, show_default=True,
+              help="Strength of source RMS envelope copy onto output (0..1). 0 = off, 1 = exact source loudness.")
 @click.option("--checkpoint-dir", type=click.Path(file_okay=False, path_type=Path),
               default=DEFAULT_CHECKPOINT_DIR, show_default=True)
 @click.option("--device", type=str, default=None,
@@ -58,7 +60,8 @@ def main(verbose: int) -> None:
 def convert(source: Path, references: tuple[Path, ...], out_path: Path, topk: int,
             pitch_shift_semitones: float | None, speech_enroll: bool, alpha: float,
             vad_trim_reference: bool, f0_method: str, f0_filter_radius: int,
-            autotune: bool, protect: float, rms_mix_rate: float,
+            autotune_strength: float, autotune_retune_ms: float,
+            protect: float, rms_mix_rate: float,
             checkpoint_dir: Path, device: str | None) -> None:
     """Convert SRC to sound like REF, write to OUT."""
     pipe = SVCPipeline(checkpoint_dir=checkpoint_dir, device=device)
@@ -70,7 +73,8 @@ def convert(source: Path, references: tuple[Path, ...], out_path: Path, topk: in
         vad_trim_reference=vad_trim_reference,
         f0_method=f0_method,
         f0_filter_radius=f0_filter_radius,
-        autotune=autotune,
+        autotune_strength=autotune_strength,
+        autotune_retune_ms=autotune_retune_ms,
         protect=protect,
         rms_mix_rate=rms_mix_rate,
         device=str(pipe.device),

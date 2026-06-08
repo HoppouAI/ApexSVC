@@ -8,10 +8,10 @@ produce octave jumps and false-voiced frames, which show up as the RVC-style
 buzzy pitch artifacts in the converted audio.
 
 Available methods:
-  "fcpe"   -- TorchFCPE neural pitch tracker (default, GPU, singing-grade)
-  "praat"  -- ParselMouth (fast classical, fine for clean speech)
-  "pyin"   -- librosa PYIN (slow CPU viterbi)
-  "median" -- median of PYIN + ParselMouth (closest to upstream NeuCoSVC2)
+  "fcpe"   : TorchFCPE neural pitch tracker (default, GPU, singing-grade)
+  "praat"  : ParselMouth (fast classical, fine for clean speech)
+  "pyin"   : librosa PYIN (slow CPU viterbi)
+  "median" : median of PYIN + ParselMouth (closest to upstream NeuCoSVC2)
 
 All frame rates are at 100 Hz (frame_period = 10 ms) on 24 kHz audio, matching
 what the NSF vocoder was trained on (hop_size = 240 samples = 10 ms).
@@ -108,10 +108,10 @@ def compute_f0(wav_path: str, sr: int = DEFAULT_SR,
     """F0 contour from a wav file. Returns (T,) in Hz, 0 for unvoiced frames.
 
     method:
-      "fcpe"   -- TorchFCPE neural tracker (default, singing-grade)
-      "praat"  -- ParselMouth only (fast classical)
-      "pyin"   -- librosa PYIN only (CPU viterbi, slow but robust)
-      "median" -- median of PYIN + ParselMouth (closest to upstream NeuCoSVC2)
+      "fcpe"   : TorchFCPE neural tracker (default, singing-grade)
+      "praat"  : ParselMouth only (fast classical)
+      "pyin"   : librosa PYIN only (CPU viterbi, slow but robust)
+      "median" : median of PYIN + ParselMouth (closest to upstream NeuCoSVC2)
     """
     wav, fs = load_wav(wav_path, sr=sr)
     target_len = wav.shape[0] // int(frame_period * fs) + 1
@@ -160,16 +160,61 @@ def median_filter_f0(f0: np.ndarray, radius: int = 3) -> np.ndarray:
     return filt
 
 
-def autotune_f0(f0: np.ndarray) -> np.ndarray:
-    """Snap each voiced F0 frame to the nearest equal-tempered semitone.
-    Rescues off-key source vocals; harmless on already in-tune ones."""
+def autotune_f0(f0: np.ndarray, strength: float = 1.0,
+                retune_ms: float = 60.0,
+                frame_rate_hz: float = 100.0) -> np.ndarray:
+    """Pro-style pitch correction toward equal-tempered semitones.
+
+    Two stages:
+      1. Per-voiced-frame, pull the midi pitch toward the nearest semitone by
+         `strength` (0 = no correction, 1 = full snap to grid).
+      2. One-pole low-pass smooth the corrected midi trajectory with a time
+         constant of `retune_ms`. This is what eliminates the "staircase"
+         artefact: when the source slides up through a semitone boundary, the
+         target jumps from N to N+1, but the smoother turns that step into a
+         glide. Smaller retune_ms = snappier (T-Pain), larger = natural.
+
+    Smoothing state resets at every voiced->unvoiced gap so we don't drag a
+    held note's pitch into the next phrase.
+
+    `frame_rate_hz` matches the F0 contour: 100 Hz for our pipeline (10 ms hop).
+    """
     voiced = f0 > 0
     if not np.any(voiced):
         return f0
+    strength = float(np.clip(strength, 0.0, 1.0))
+    if strength <= 0.0:
+        return f0.astype(np.float64).copy()
+
     out = f0.astype(np.float64).copy()
-    midi = 69.0 + 12.0 * np.log2(out[voiced] / 440.0)
-    snapped = np.round(midi)
-    out[voiced] = 440.0 * (2.0 ** ((snapped - 69.0) / 12.0))
+    midi = np.zeros_like(out)
+    midi[voiced] = 69.0 + 12.0 * np.log2(out[voiced] / 440.0)
+    targets = np.round(midi)
+    desired = midi + strength * (targets - midi)
+
+    # one-pole IIR: y[n] = a * y[n-1] + (1-a) * x[n]
+    # tau in frames: a = exp(-1/tau). bigger tau = more smoothing = slower glide.
+    tau = max(1.0, float(retune_ms) * 1e-3 * float(frame_rate_hz))
+    a = float(np.exp(-1.0 / tau))
+
+    smoothed = midi.copy()
+    in_run = False
+    state = 0.0
+    n = len(midi)
+    for i in range(n):
+        if not voiced[i]:
+            in_run = False
+            smoothed[i] = 0.0
+            continue
+        if not in_run:
+            # init the smoother at the actual pitch, not at the target. that
+            # way the very first frame of a phrase isn't a yanked correction.
+            state = midi[i]
+            in_run = True
+        state = a * state + (1.0 - a) * desired[i]
+        smoothed[i] = state
+
+    out[voiced] = 440.0 * (2.0 ** ((smoothed[voiced] - 69.0) / 12.0))
     return out
 
 

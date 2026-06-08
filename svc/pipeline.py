@@ -52,10 +52,14 @@ class ConversionConfig:
     target_loudness_db: float | None = -16.0
     vad_trim_reference: bool = True
     f0_method: str = "fcpe"  # "fcpe" (default, neural), "praat", "pyin", "median"
-    f0_filter_radius: int = 3   # median filter radius for the F0 contour (1 = off)
-    autotune: bool = False      # snap voiced F0 to nearest equal-temp semitone
-    protect: float = 0.5        # 0..1, source weight blended into voiceless frames
-    rms_mix_rate: float = 0.25  # 0..1, copy source RMS envelope onto output
+    f0_filter_radius: int = 1   # median filter radius for the F0 contour (1 = off)
+    # autotune strength: 0 = off, 1 = full snap. internally smoothed with a
+    # one-pole filter (autotune_retune_ms) so it glides between target notes
+    # instead of stair-stepping.
+    autotune_strength: float = 0.0
+    autotune_retune_ms: float = 60.0  # smaller = snappier (T-Pain), larger = natural
+    protect: float = 0.0        # 0..1, source weight blended into voiceless frames (0 = off)
+    rms_mix_rate: float = 0.0   # 0..1, copy source RMS envelope onto output (0 = off)
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     checkpoint_dir: Path = field(default_factory=lambda: DEFAULT_CHECKPOINT_DIR)
 
@@ -260,9 +264,15 @@ class SVCPipeline:
             f0_src = median_filter_f0(f0_src, radius=int(cfg.f0_filter_radius))
             _emit("f0", 0.8,
                   f"F0 median filter r={int(cfg.f0_filter_radius)}")
-        if cfg.autotune:
-            f0_src = autotune_f0(f0_src)
-            _emit("f0", 0.9, "F0 autotune (snap to nearest semitone)")
+        if cfg.autotune_strength and cfg.autotune_strength > 0.0:
+            f0_src = autotune_f0(
+                f0_src,
+                strength=float(cfg.autotune_strength),
+                retune_ms=float(cfg.autotune_retune_ms),
+            )
+            _emit("f0", 0.9,
+                  f"autotune strength={cfg.autotune_strength:.2f} "
+                  f"retune={cfg.autotune_retune_ms:.0f}ms")
         _emit("f0", 1.0, "F0 ready")
         pitch_src = coarse_f0(f0_src, f0_bins=int(self.h.f0_bins))
 
